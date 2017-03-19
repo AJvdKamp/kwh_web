@@ -19,8 +19,7 @@ unsigned short readings[READINGS];
 unsigned short cursor = 0;
 boolean gotenough = false;
 unsigned short hits = 0;
-unsigned long prevMillisShort = 0;    // Remember the start time of the short logging cycle
-unsigned long prevMillisLong = 0;     // Remember the start time of the long logging cycle
+unsigned long prevMillisP = 0;    // Remember the start time of the Power logging cycle
 boolean powerJustSwitchedOn = true;
 
 // NETWORK: Static IP details...
@@ -127,8 +126,8 @@ delay (20); // If the Arduino is too busy the Wifi will not function
   Serial.println(" W");
 
   // Log the power values via wifi every minute
-  if ((millis() - prevMillisShort) >= 60000) {
-    prevMillisShort = millis();
+  if ((millis() - prevMillisP) >= 60000) {
+    prevMillisP = millis();
       // if you get a connection, report back via serial:
       if (client.connect(server, 80)) {
         Serial.println("connected");
@@ -142,30 +141,7 @@ delay (20); // If the Arduino is too busy the Wifi will not function
       } else {
       // if you didn't get a connection to the server:
       Serial.println("connection failed");
-    }
-    
-  }
-    // Log the power value and the power usage via wifi every 5 minutes
-  if ((millis() - prevMillisLong) >= 300000) {
-    prevMillisLong = millis();
-    prevMillisShort = millis();
-      // if you get a connection, report back via serial:
-      if (client.connect(server, 80)) {
-        Serial.println("connected");
-        // Make a HTTP request:
-        client.print("GET /cgi-bin/meter?Wh=");
-        client.print(1000 * cycles / cycles_per_kwh);   
-        client.print("&watt=");
-        client.print(W);   
-        client.println(" HTTP/1.1");
-        client.println("Host: 192.168.1.2");
-        client.println("Connection: close");
-        client.println();
-        cycles = 0;
-      } else {
-      // if you didn't get a connection to the server:
-      Serial.println("connection failed");
-    }
+    } 
   }
 }
 
