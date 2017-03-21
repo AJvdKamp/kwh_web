@@ -4,6 +4,7 @@
 
 #define READINGS       250
 #define MS_PER_HOUR    3.6e6
+#define WIFICONF_INSKETCH
 
 int ledPin = 2; // GPIO2 of ESP8266
 
@@ -19,13 +20,11 @@ unsigned short readings[READINGS];
 unsigned short cursor = 0;
 boolean gotenough = false;
 unsigned short hits = 0;
-unsigned long prevMillisP = 0;    // Remember the start time of the Power logging cycle
+unsigned long prevMillisP = millis();    // Remember the start time of the Power logging cycle
 boolean powerJustSwitchedOn = true;
+double power = 0;   // Initial power is zero
 
-// NETWORK: Static IP details...
-IPAddress ip(192, 168, 1, 10);
-IPAddress gateway(192, 168, 1, 1);
-IPAddress subnet(255, 255, 255, 0);
+// NETWORK: Server details...
 IPAddress server(192, 168, 1, 2);
 
 WiFiClient client;
@@ -37,10 +36,7 @@ void setup () {
   pinMode(ledPin, OUTPUT);
   digitalWrite(ledPin, HIGH);
 
-  // Start the wifi connection
-  Serial.print("Connecting to ");
-  Serial.println(SSID);
-  WiFi.config(ip, gateway, subnet);
+  // Connect to wifi with DHCP
   WiFi.begin(SSID, PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -48,10 +44,30 @@ void setup () {
   }
   Serial.println("");
   Serial.println("WiFi connected");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
 }
   
 void loop () {
 delay (20); // If the Arduino is too busy the Wifi will not function
+  // Log the power values via wifi every minute
+  if ((millis() - prevMillisP) >= 60000) {
+    prevMillisP = millis();
+      // if you get a connection, report back via serial:
+      if (client.connect(server, 80)) {
+        Serial.println("connected");
+        // Make a HTTP request:
+        client.print("GET /cgi-bin/meter?watt=");
+        client.print(power);   
+        client.println(" HTTP/1.1");
+        client.println("Host: 192.168.1.2");
+        client.println("Connection: close");
+        client.println();
+      } else {
+      // if you didn't get a connection to the server:
+      Serial.println("connection failed");
+    } 
+  }
   //  Calulate the sum of 40 samples
   unsigned short sum = 0;
   for (byte i = 0; i < 40; i++) {
@@ -116,32 +132,14 @@ delay (20); // If the Arduino is too busy the Wifi will not function
     return;
   }
   cycles++;
-  double W = 1000 * ((double) MS_PER_HOUR / time) / cycles_per_kwh;
+  power = 1000 * ((double) MS_PER_HOUR / time) / cycles_per_kwh;
   Serial.print("Cycle ");
   Serial.print(cycles, DEC);
   Serial.print(": ");
   Serial.print(time, DEC);
   Serial.print(" ms, ");
-  Serial.print(W, 2);
+  Serial.print(power, 2);
   Serial.println(" W");
-
-  // Log the power values via wifi every minute
-  if ((millis() - prevMillisP) >= 60000) {
-    prevMillisP = millis();
-      // if you get a connection, report back via serial:
-      if (client.connect(server, 80)) {
-        Serial.println("connected");
-        // Make a HTTP request:
-        client.print("GET /cgi-bin/meter?watt=");
-        client.print(W);   
-        client.println(" HTTP/1.1");
-        client.println("Host: 192.168.1.2");
-        client.println("Connection: close");
-        client.println();
-      } else {
-      // if you didn't get a connection to the server:
-      Serial.println("connection failed");
-    } 
-  }
+ 
 }
 
