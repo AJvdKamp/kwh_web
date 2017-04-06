@@ -37,6 +37,7 @@ void setup () {
   digitalWrite(ledPin, HIGH);
 
   // Connect to wifi with DHCP
+  WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
