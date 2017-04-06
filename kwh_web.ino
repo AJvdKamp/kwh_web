@@ -10,8 +10,8 @@ int ledPin = 2; // GPIO2 of ESP8266
 
 // Power measurement settings
 unsigned short cycles_per_kwh = 400;
-unsigned char  loThresholdP = 101;
-unsigned char  hiThresholdP = 110;
+unsigned char  loThresholdP = 110;
+unsigned char  hiThresholdP = 120;
 unsigned long debounceTimeP = 600;
 boolean markerState = LOW;
 unsigned long cycles = 0;
@@ -50,7 +50,7 @@ void setup () {
 }
   
 void loop () {
-delay (20); // If the Arduino is too busy the Wifi will not function
+delay (100); // If the Arduino is too busy the Wifi will not function
   // Log the power values via wifi every minute
   if ((millis() - prevMillisP) >= 60000) {
     prevMillisP = millis();
@@ -92,12 +92,15 @@ delay (20); // If the Arduino is too busy the Wifi will not function
     cursor = 0;
    }
 
-// If markerState has not changed, make newmarkerState high if ration > lo. If the markerState HAS changed make newledstae low if ratio >= hi
+// If markerState is true, make newmarkerState high if ration > lo otherwise low. If the markerState is not true make high if ratio >= hi otherwise low.
   boolean newmarkerState = markerState 
     ? (ratio >  loThresholdP)
     : (ratio >= hiThresholdP);
 
   if (newmarkerState) hits++;
+//  Debug
+//  Serial.print("Ratio: ");
+//  Serial.println(ratio);
 
 // Return if the markerstate has not changed
   if (newmarkerState == markerState) return;
@@ -106,7 +109,6 @@ delay (20); // If the Arduino is too busy the Wifi will not function
 
 //  LED is ON (low) if the marker is detected
   digitalWrite(ledPin, !markerState);
-
   if (!markerState) {
     Serial.print("Marker: ");
     Serial.print(millis() - previous);
